@@ -1,0 +1,29 @@
+# Cloudflare Pages headers — applied automatically when the repo is
+# deployed via Pages. Mirrors the Vercel config in vercel.json so either
+# host works without code changes.
+
+/*
+  # No X-Frame-Options — Shopify needs to embed this in an <iframe>.
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: interest-cohort=()
+
+# Long-cache the WASM + JS — they're immutable per-deploy. If you ship a
+# new build, the file content changes, the browser picks up the new
+# version on next visit thanks to ETag/content-hash invalidation. If
+# anything ever goes wrong, just bump the cache by appending ?v=2 to the
+# script src in index.html.
+/*.wasm
+  Content-Type: application/wasm
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.rdmimg
+  Content-Type: application/octet-stream
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML revalidates so a re-deploy lands on next visit without a hard refresh
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate

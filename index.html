@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>RDM-7 Dash — Live Demo</title>
+  <meta name="description" content="Interactive in-browser demo of the RDM-7 Dash running its default layout." />
+
+  <!-- Hint to the parent Shopify page that this iframe is happy to be scaled -->
+  <meta name="theme-color" content="#0c0c0d" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;       /* let the Shopify page show through */
+      color: #e8e8ea;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                   "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+      touch-action: manipulation;    /* kill iOS double-tap zoom on dash */
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── Stage: centers + scales the bezel to fit the iframe ───────────── */
+    .stage {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 12px;
+    }
+
+    /* ── Bezel: the dashboard housing around the 800×480 LCD ────────────
+     * Outer plastic frame in matte black; subtle highlight on top edge to
+     * suggest a moulded part. Inner shadow at the screen border so the
+     * LCD reads as inset rather than painted on. */
+    .bezel {
+      /* Native size — gets scaled with transform to fit. The 800×480 LCD
+         plus 30px bezel on each side = 860×540. */
+      width: 860px;
+      height: 540px;
+
+      background: linear-gradient(180deg, #1a1a1c 0%, #0c0c0d 100%);
+      border-radius: 22px;
+      padding: 30px;
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.04),
+        0 24px 60px -20px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      position: relative;
+
+      /* Scale-to-fit: GPU-accelerated transform, native LCD pixels stay
+         crisp because the canvas is rendered at 800×480 internally. */
+      transform-origin: center center;
+    }
+
+    /* Tiny brand mark in the lower bezel — keeps the demo recognisably
+     * the product without dominating the frame. */
+    .bezel::after {
+      content: "RDM-7";
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      letter-spacing: 0.3em;
+      color: rgba(255, 255, 255, 0.18);
+      pointer-events: none;
+    }
+
+    /* ── Screen: the LCD itself — 800×480 at native pixel size ───────── */
+    .screen {
+      width: 800px;
+      height: 480px;
+      background: #000;
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Canvas the WASM SDL2 driver writes pixels to. Sized to native
+     * resolution so every dashboard pixel is crisp. */
+    canvas {
+      display: block;
+      width: 800px;
+      height: 480px;
+      image-rendering: pixelated;   /* no smoothing — matches the device */
+      touch-action: none;           /* we forward raw pointer events */
+    }
+
+    /* ── Loading state ─────────────────────────────────────────────────
+     * Static placeholder shown while the 2 MB WASM downloads + boots.
+     * Faded in/out via opacity so there's no jarring flash on swap. */
+    .loading {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: #000;
+      color: #5a5a60;
+      font-size: 13px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      transition: opacity 350ms ease;
+      pointer-events: none;
+    }
+    .loading.hidden { opacity: 0; }
+    .loading .ring {
+      width: 28px;
+      height: 28px;
+      border: 2px solid #2a2a30;
+      border-top-color: #e8e8ea;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin-bottom: 14px;
+    }
+    .loading .col {
+      display: grid;
+      place-items: center;
+      gap: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── First-tap-to-start gate (mobile only) ─────────────────────────
+     * Some mobile browsers (iOS Safari) gate audio/video/wasm-stream
+     * initialisation on a user gesture. The dash itself works fine
+     * without a gesture, but if the parent page wants to keep mobile
+     * data usage lean we expose a `?gate=1` query param that hides the
+     * canvas behind a "Tap to start" overlay until the user opts in.
+     * Default: no gate, WASM loads immediately on page open. */
+    .gate {
+      position: absolute;
+      inset: 0;
+      display: none;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.92);
+      color: #e8e8ea;
+      cursor: pointer;
+      z-index: 10;
+    }
+    .gate.visible { display: grid; }
+    .gate-inner {
+      display: grid;
+      place-items: center;
+      gap: 10px;
+      text-align: center;
+      padding: 0 20px;
+    }
+    .gate-title {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .gate-sub {
+      font-size: 12px;
+      color: #8a8a90;
+      letter-spacing: 0.08em;
+    }
+    .gate-play {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #fff;
+      display: grid;
+      place-items: center;
+      margin-bottom: 6px;
+    }
+    .gate-play svg { width: 22px; height: 22px; fill: #0c0c0d; }
+
+    /* ── Responsive scaling ──────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .bezel { transform: scale(0.75); }
+    }
+    @media (max-width: 700px) {
+      .bezel { transform: scale(0.6); }
+    }
+    @media (max-width: 540px) {
+      .bezel { transform: scale(0.48); }
+    }
+    @media (max-width: 420px) {
+      .bezel { transform: scale(0.38); }
+    }
+
+    /* Reduce-motion users get a static screen — no spinner */
+    @media (prefers-reduced-motion: reduce) {
+      .loading .ring { animation: none; border-top-color: #2a2a30; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="bezel" id="bezel">
+      <div class="screen">
+        <canvas id="dash" width="800" height="480"></canvas>
+
+        <div class="loading" id="loading">
+          <div class="col">
+            <div class="ring"></div>
+            <div>Loading dash demo</div>
+          </div>
+        </div>
+
+        <div class="gate" id="gate">
+          <div class="gate-inner">
+            <div class="gate-play">
+              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+            <div class="gate-title">Tap to start</div>
+            <div class="gate-sub">Loads ~2 MB · runs locally in your browser</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ── Config ────────────────────────────────────────────────────────
+     * Scene 6 = SCENE_DASHBOARD ("driving" with synthetic data).
+     * The wizard sandbox starts at scene 0 (CAN scan); we jump straight
+     * to the dashboard so the homepage demo is product-on-arrival. */
+    const SCENE_DASHBOARD = 6;
+
+    /* ?gate=1 in the iframe src enables the tap-to-start overlay. Default
+     * is gate-off because most desktops are happy to autoload, and on
+     * mobile the iframe is usually lazy-loaded by Shopify anyway. */
+    const params = new URLSearchParams(window.location.search);
+    const useGate = params.get('gate') === '1';
+
+    const canvas  = document.getElementById('dash');
+    const loading = document.getElementById('loading');
+    const gate    = document.getElementById('gate');
+
+    /* ── WASM bootstrap ─────────────────────────────────────────────── */
+    let module = null;
+    let rafId  = 0;
+
+    async function loadWasm() {
+      /* Inject the Emscripten module-script. It self-registers on
+       * window.RDM7Sandbox (set via EXPORT_NAME in the sandbox build). */
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = './rdm7-sandbox.js';
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('Failed to load rdm7-sandbox.js'));
+        document.head.appendChild(s);
+      });
+
+      const factory = window.RDM7Sandbox;
+      if (!factory) throw new Error('RDM7Sandbox factory missing on window');
+
+      module = await factory({
+        canvas,
+        locateFile: (path) => path,   /* serve .wasm from same directory */
+        print:    () => {},           /* silence printf */
+        printErr: () => {},           /* silence ESP_LOG */
+      });
+
+      /* Drop the dash logo into the in-memory FS so the splash screen
+       * has it. Other widget images would slot in here too if the
+       * default layout referenced them. */
+      try {
+        const res = await fetch('./RDM.rdmimg');
+        if (res.ok) {
+          const buf = new Uint8Array(await res.arrayBuffer());
+          try { module.FS.mkdir('/lfs');         } catch (_) {}
+          try { module.FS.mkdir('/lfs/images');  } catch (_) {}
+          module.FS.writeFile('/lfs/images/RDM.rdmimg', buf);
+        }
+      } catch (e) { /* non-fatal — splash just renders without the logo */ }
+
+      /* Jump straight to the dashboard scene so the demo opens on the
+       * product's actual main screen rather than the first-run wizard. */
+      if (module._sandbox_set_scene) {
+        module._sandbox_set_scene(SCENE_DASHBOARD);
+      }
+
+      /* Per-frame tick. requestAnimationFrame matches display vsync,
+       * which is typically 60 Hz — well above the firmware's 70 fps
+       * target on the real LCD, so the demo looks at least as smooth
+       * as the hardware. */
+      const tick = () => {
+        if (module && module._sandbox_step) module._sandbox_step();
+        rafId = requestAnimationFrame(tick);
+      };
+      rafId = requestAnimationFrame(tick);
+
+      /* Fade the loading state out (CSS transition handles the rest). */
+      loading.classList.add('hidden');
+    }
+
+    /* ── Pointer forwarding ────────────────────────────────────────────
+     * Translates browser pointer coordinates into the canvas's native
+     * 800×480 pixel space and forwards to the WASM input driver.
+     * Works for mouse, touch, and pen via the unified Pointer Events API. */
+    function forwardPointer(ev, pressed) {
+      if (!module || !module._sandbox_set_pointer) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = ((ev.clientX - rect.left) * canvas.width)  / rect.width;
+      const y = ((ev.clientY - rect.top)  * canvas.height) / rect.height;
+      module._sandbox_set_pointer(Math.round(x), Math.round(y), pressed);
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+      canvas.setPointerCapture(e.pointerId);
+      forwardPointer(e, 1);
+      e.preventDefault();
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      /* Only forward "move with button held" — saves a lot of cycles
+       * when the user is just hovering. */
+      if (e.buttons || e.pointerType === 'touch') forwardPointer(e, 1);
+    });
+    canvas.addEventListener('pointerup', (e) => {
+      forwardPointer(e, 0);
+      try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+      e.preventDefault();
+    });
+    canvas.addEventListener('pointercancel', (e) => forwardPointer(e, 0));
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    /* ── Lifecycle ─────────────────────────────────────────────────────
+     * Pause the render loop when the iframe is hidden (parent tab in
+     * background, or page scrolled past on mobile). Saves battery without
+     * affecting first-load behaviour. */
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (rafId) cancelAnimationFrame(rafId);
+      } else if (module) {
+        const tick = () => {
+          if (module._sandbox_step) module._sandbox_step();
+          rafId = requestAnimationFrame(tick);
+        };
+        rafId = requestAnimationFrame(tick);
+      }
+    });
+
+    /* ── Entry point ──────────────────────────────────────────────────
+     * Gate behind a user tap when ?gate=1 was set; otherwise just load. */
+    if (useGate) {
+      gate.classList.add('visible');
+      gate.addEventListener('click', () => {
+        gate.classList.remove('visible');
+        loadWasm().catch((err) => {
+          loading.textContent = 'Demo unavailable';
+          console.error(err);
+        });
+      }, { once: true });
+    } else {
+      loadWasm().catch((err) => {
+        loading.querySelector('.col').innerHTML = '<div>Demo unavailable</div>';
+        console.error(err);
+      });
+    }
+  </script>
+</body>
+</html>
