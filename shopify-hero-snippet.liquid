@@ -166,6 +166,28 @@
     background: #000 !important;
   }
 
+  /* Center-of-dash RDM logo overlay.
+   * Sits on top of the canvas at a fixed proportion of the screen
+   * (16.25% wide = 130 px when the canvas renders at its native 800 px
+   * width; scales down on smaller viewports automatically because it's
+   * a percentage of the parent). pointer-events:none so taps still
+   * reach the underlying iframe. */
+  #rdm-hero-{{ section.id }} .rh-dash-logo {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 16.25% !important;
+    pointer-events: none !important;
+    z-index: 2 !important;
+    /* SVG inside scales to fill via display:block */
+  }
+  #rdm-hero-{{ section.id }} .rh-dash-logo svg {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
   #rdm-hero-{{ section.id }} .rh-stats {
     position: relative !important; z-index: 1 !important;
     margin: 60px auto 0 !important;
@@ -248,6 +270,22 @@
           sandbox="allow-scripts allow-same-origin"
           title="RDM-7 Dash live demo"
           allow="autoplay"></iframe>
+
+        {%- comment -%}
+          RDM logo overlay — sits on top of the dash canvas in the centre
+          gap of the default layout. Inline SVG so it scales perfectly,
+          no external file hosting, no Shopify asset upload. Skewed
+          parallelogram in brand red with italic-bold "RDM" wordmark.
+        {%- endcomment -%}
+        <div class="rh-dash-logo" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 110" preserveAspectRatio="xMidYMid meet">
+            <path d="M 28 6 L 234 6 L 226 104 L 6 104 Z" fill="#CC0000"/>
+            <text x="120" y="82" fill="#fff"
+                  font-family="Inter, Helvetica, Arial, sans-serif"
+                  font-weight="900" font-size="74" font-style="italic"
+                  text-anchor="middle" letter-spacing="-2">RDM</text>
+          </svg>
+        </div>
       </div>
     </div>
 

@@ -334,6 +334,115 @@
         module._sandbox_set_scene(SCENE_DASHBOARD);
       }
 
+      /* JS-side synthetic drive cycle.
+       *
+       * The WASM has its own internal drive cycle (wizard_sandbox.c
+       * `_dash_tick`) but it starts frozen by default and the unfreeze
+       * function isn't in the JS export list of the current build. So
+       * we drive the dash directly from JS by calling the signal-inject
+       * entry point on a 60 ms interval (matches the C-side cadence).
+       *
+       * Cycle is a continuous accelerate-shift-redline loop covering
+       * gears 1-6, intentionally lively so the homepage demo never
+       * looks static. Sine-wave secondary signals add visual variation
+       * without trying to simulate a real engine model. */
+      try {
+        const inject = module.cwrap('sandbox_inject_signal', null, ['string', 'number']);
+
+        const PHASE_PULL_S    = 1.4;   // accelerate from current rpm to redline
+        const PHASE_SHIFT_S   = 0.20;  // rpm drops on shift
+        const CYCLE_GEARS     = 6;
+        const REDLINE         = 7000;
+        const POST_SHIFT_RPM  = 3200;
+        const IDLE_RPM        = 1200;
+
+        const t0 = performance.now();
+        let phase = 'pull';
+        let phaseStart = t0;
+        let gear = 1;
+        let pullRpmStart  = IDLE_RPM;
+        let pullSpeed     = 0;
+        const topSpeeds   = [55, 95, 140, 180, 220, 260];
+        let pullSpeedStart = 0;
+
+        const lerp = (a, b, k) => a + (b - a) * k;
+        const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+        const wave  = (ms, c, amp, period, phaseMs) =>
+          c + amp * Math.sin(((ms - phaseMs) / period) * 2 * Math.PI);
+
+        function step() {
+          const now = performance.now();
+          const ms  = now - t0;
+          const phaseMs = now - phaseStart;
+
+          let rpm, speed, throttle;
+
+          if (phase === 'pull') {
+            const k = clamp(phaseMs / 1000 / PHASE_PULL_S, 0, 1);
+            const eased = Math.pow(k, 1.6);
+            rpm   = lerp(pullRpmStart,  REDLINE,                 eased);
+            speed = lerp(pullSpeedStart, topSpeeds[gear - 1], k);
+            throttle = 100;
+            if (k >= 1) {
+              if (gear < CYCLE_GEARS) {
+                phase = 'shift';
+                phaseStart = now;
+              } else {
+                phase = 'redline';
+                phaseStart = now;
+              }
+            }
+          } else if (phase === 'shift') {
+            const k = clamp(phaseMs / 1000 / PHASE_SHIFT_S, 0, 1);
+            rpm   = lerp(REDLINE, POST_SHIFT_RPM, k);
+            speed = topSpeeds[gear - 1];
+            throttle = lerp(100, 30, k);
+            if (k >= 1) {
+              gear += 1;
+              pullRpmStart = POST_SHIFT_RPM;
+              pullSpeedStart = topSpeeds[gear - 2];
+              phase = 'pull';
+              phaseStart = now;
+            }
+          } else { // 'redline' — hold at top of 6th, then reset
+            const flickerOn = Math.floor(phaseMs / 80) % 2 === 0;
+            rpm = flickerOn ? 7150 : 6900;
+            speed = topSpeeds[CYCLE_GEARS - 1];
+            throttle = 100;
+            if (phaseMs > 1800) {
+              gear = 1;
+              pullRpmStart = IDLE_RPM;
+              pullSpeedStart = 0;
+              phase = 'pull';
+              phaseStart = now;
+            }
+          }
+
+          inject('RPM',             rpm);
+          inject('VEHICLE_SPEED',   speed);
+          inject('THROTTLE',        throttle);
+          inject('GEAR',            gear);
+          // Slow-moving secondary signals — give the cells some life.
+          inject('COOLANT_TEMP',    82 + Math.min(ms / 40000, 5));
+          inject('INTAKE_AIR_TEMP', wave(ms, 34, 6,    4200, 0));
+          inject('LAMBDA',          wave(ms, 0.92, 0.08, 3100, 800));
+          inject('OIL_TEMP',        wave(ms, 95, 5,    8000, 1500));
+          inject('OIL_PRESSURE',    wave(ms, 380, 70,  2400, 400));
+          inject('MAP',             wave(ms, 95, 40,   2000, 1100));
+          inject('IGNITION',        wave(ms, 18, 6,    2800, 2300));
+          inject('FUEL_TRIM',       wave(ms,  1.5, 2.0, 5500, 3000));
+          inject('BATTERY_VOLTAGE', wave(ms, 13.8, 0.3, 9000, 0));
+          inject('FUEL_PRESSURE',   wave(ms, 48,   2,   3600, 2000));
+        }
+        // 60 ms cadence — matches the WASM's internal _dash_tick rate.
+        setInterval(step, 60);
+        step();
+      } catch (err) {
+        /* Non-fatal — even with no signals, the layout still renders
+         * with "---" placeholders. */
+        console.warn('drive cycle bootstrap failed:', err);
+      }
+
       /* Per-frame tick. requestAnimationFrame matches display vsync,
        * which is typically 60 Hz — well above the firmware's 70 fps
        * target on the real LCD, so the demo looks at least as smooth
