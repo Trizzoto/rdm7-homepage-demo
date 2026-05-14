@@ -172,12 +172,15 @@
    * width; scales down on smaller viewports automatically because it's
    * a percentage of the parent). pointer-events:none so taps still
    * reach the underlying iframe. */
+  /* Sits over the grey "RDM" text widget the firmware's default layout
+   * renders in the centre gap — moved up from dead-centre so the red
+   * brand mark fully covers the grey placeholder above the speed value. */
   #rdm-hero-{{ section.id }} .rh-dash-logo {
     position: absolute !important;
-    top: 50% !important;
+    top: 36% !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
-    width: 16.25% !important;
+    width: 17% !important;
     pointer-events: none !important;
     z-index: 2 !important;
   }
