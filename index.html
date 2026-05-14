@@ -37,19 +37,37 @@
     /* ── Bare mode (?bare=1) ─────────────────────────────────────────────
      * Used when the demo is embedded inside another page's bezel (e.g.
      * the Shopify hero). Strips our own bezel chrome so it doesn't
-     * double up. Canvas sizes to fill the iframe, native 800×480
-     * pixels are preserved via the screen container's overflow:hidden. */
-    body.bare .stage   { padding: 0; }
-    body.bare .bezel {
+     * double up.
+     *
+     * Sizing model: the .screen container is forced to a strict 5:3
+     * aspect ratio sized to be the largest box that fits inside the
+     * iframe — so the canvas (which fills .screen 100%×100%) is ALWAYS
+     * fully visible whatever the host iframe dimensions are. The iframe
+     * may be wider OR taller than 5:3 and the screen just centers with
+     * black margins, never clips. */
+    body.bare .stage {
+      padding: 0;
       width: 100%;
       height: 100%;
-      max-width: none;
-      max-height: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    body.bare .bezel {
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      max-height: 100%;
       background: transparent;
       border-radius: 0;
       padding: 0;
       box-shadow: none;
       transform: none;
+      /* Aspect-ratio + max-width/max-height = "largest 5:3 box that
+       * fits inside the iframe". Browser picks the constraint that
+       * binds first (width or height) and the other axis auto-sizes. */
+      aspect-ratio: 800 / 480;
+      width: 100%;
     }
     body.bare .bezel::after { display: none; }
     body.bare .screen {
@@ -57,20 +75,12 @@
       height: 100%;
       border-radius: 0;
       box-shadow: none;
-      display: grid;
-      place-items: center;
+      aspect-ratio: 800 / 480;
     }
     body.bare canvas {
-      /* Object-fit-contain semantics for the canvas: keep native 800×480
-       * aspect (browser scales the 800×480 bitmap to whatever CSS size we
-       * give it), fill the available iframe space, centered by the parent's
-       * place-items: center. */
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      aspect-ratio: 800 / 480;
-      max-width: 100%;
-      max-height: 100%;
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
     }
     body.bare .loading { background: #000; }
 

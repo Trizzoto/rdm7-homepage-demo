@@ -133,14 +133,16 @@
   }
   #rdm-hero-{{ section.id }} .rh-btn--ghost:hover { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.4) !important; transform: none !important; }
 
-  /* Bezel — matches the WASM canvas's 800x480 aspect ratio internally,
-   * so the centered iframe content fills the screen with no black bars.
-   * The 1080/616 outer ratio gives the surround a slight rectangular
-   * bezel that reads like a real automotive housing. */
+  /* Bezel — uses 1000/611 outer aspect so that, after the 14 px padding
+   * eats into both axes, the inner .rh-screen ends up at the canvas's
+   * native 800×480 (5:3) ratio. That way the WASM dash fills the screen
+   * edge-to-edge with no black bars, while still leaving a real-looking
+   * automotive housing margin on every side. Visibly wider than tall
+   * without being letterbox-cinema. */
   #rdm-hero-{{ section.id }} .rh-bezel {
     justify-self: center !important;
     width: 100% !important; max-width: 1000px !important;
-    aspect-ratio: 1080 / 616 !important;
+    aspect-ratio: 1000 / 611 !important;
     background: #1a1a1a !important;
     border-radius: 18px !important;
     padding: 14px !important;
