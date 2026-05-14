@@ -34,6 +34,46 @@
       padding: 12px;
     }
 
+    /* ── Bare mode (?bare=1) ─────────────────────────────────────────────
+     * Used when the demo is embedded inside another page's bezel (e.g.
+     * the Shopify hero). Strips our own bezel chrome so it doesn't
+     * double up. Canvas sizes to fill the iframe, native 800×480
+     * pixels are preserved via the screen container's overflow:hidden. */
+    body.bare .stage   { padding: 0; }
+    body.bare .bezel {
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      max-height: none;
+      background: transparent;
+      border-radius: 0;
+      padding: 0;
+      box-shadow: none;
+      transform: none;
+    }
+    body.bare .bezel::after { display: none; }
+    body.bare .screen {
+      width: 100%;
+      height: 100%;
+      border-radius: 0;
+      box-shadow: none;
+      display: grid;
+      place-items: center;
+    }
+    body.bare canvas {
+      /* Object-fit-contain semantics for the canvas: keep native 800×480
+       * aspect (browser scales the 800×480 bitmap to whatever CSS size we
+       * give it), fill the available iframe space, centered by the parent's
+       * place-items: center. */
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      aspect-ratio: 800 / 480;
+      max-width: 100%;
+      max-height: 100%;
+    }
+    body.bare .loading { background: #000; }
+
     /* ── Bezel: the dashboard housing around the 800×480 LCD ────────────
      * Outer plastic frame in matte black; subtle highlight on top edge to
      * suggest a moulded part. Inner shadow at the screen border so the
@@ -227,9 +267,14 @@
 
     /* ?gate=1 in the iframe src enables the tap-to-start overlay. Default
      * is gate-off because most desktops are happy to autoload, and on
-     * mobile the iframe is usually lazy-loaded by Shopify anyway. */
+     * mobile the iframe is usually lazy-loaded by Shopify anyway.
+     *
+     * ?bare=1 strips the demo's own bezel + brand label — used when
+     * embedding inside another page's bezel so we don't double up. */
     const params = new URLSearchParams(window.location.search);
     const useGate = params.get('gate') === '1';
+    const bare    = params.get('bare') === '1';
+    if (bare) document.body.classList.add('bare');
 
     const canvas  = document.getElementById('dash');
     const loading = document.getElementById('loading');
