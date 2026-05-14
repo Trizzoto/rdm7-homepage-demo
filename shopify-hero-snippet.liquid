@@ -133,19 +133,22 @@
   }
   #rdm-hero-{{ section.id }} .rh-btn--ghost:hover { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.4) !important; transform: none !important; }
 
-  /* Bezel — uses 1000/611 outer aspect so that, after the 14 px padding
-   * eats into both axes, the inner .rh-screen ends up at the canvas's
-   * native 800×480 (5:3) ratio. That way the WASM dash fills the screen
-   * edge-to-edge with no black bars, while still leaving a real-looking
-   * automotive housing margin on every side. Visibly wider than tall
-   * without being letterbox-cinema. */
+  /* Bezel — proportions match the physical RDM-7 spec exactly:
+   *   Outer:        192.96 × 110.76 mm  (aspect 1.7420)
+   *   Screen window: 154.88 ×  86.72 mm
+   *   Top margin:    13.04 mm  =  6.76% of outer width
+   *   Bottom margin: 11.00 mm  =  5.70% of outer width
+   *   Side margins:  19.04 mm  =  9.87% of outer width each
+   * Padding values are percentages of the outer width (CSS uses the
+   * width axis as the reference for top/bottom % padding too), so the
+   * inner screen lands at the same 1.786 ratio as the physical cutout. */
   #rdm-hero-{{ section.id }} .rh-bezel {
     justify-self: center !important;
     width: 100% !important; max-width: 1000px !important;
-    aspect-ratio: 1000 / 611 !important;
+    aspect-ratio: 19296 / 11076 !important;
     background: #1a1a1a !important;
     border-radius: 18px !important;
-    padding: 14px !important;
+    padding: 6.76% 9.87% 5.70% !important;
     box-shadow: 0 30px 80px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05) !important;
   }
   #rdm-hero-{{ section.id }} .rh-screen {

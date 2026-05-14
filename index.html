@@ -222,6 +222,30 @@
     }
     .gate-play svg { width: 22px; height: 22px; fill: #0c0c0d; }
 
+    /* ── Minimal gate (?minimal=1) ───────────────────────────────────────
+     * Drops the "Tap to start / Loads ~2 MB" copy and shows only an
+     * enlarged play button in the centre. Used in the Round teaser
+     * porthole where the surrounding section copy already explains
+     * what the visitor is about to do. */
+    body.minimal .gate-title,
+    body.minimal .gate-sub { display: none; }
+    body.minimal .gate-inner { gap: 0; }
+    body.minimal .gate-play {
+      width: 84px;
+      height: 84px;
+      margin: 0;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08),
+                  0 0 40px rgba(204, 0, 0, 0.35);
+      transition: transform 200ms ease;
+    }
+    body.minimal .gate-play svg { width: 32px; height: 32px; }
+    body.minimal .gate:hover .gate-play { transform: scale(1.06); }
+    body.minimal .gate {
+      /* Slightly more translucent so the dash placeholder peeks through
+       * — feels less like a blocker, more like an invitation. */
+      background: rgba(0, 0, 0, 0.65);
+    }
+
     /* ── Responsive scaling ──────────────────────────────────────────── */
     @media (max-width: 900px) {
       .bezel { transform: scale(0.75); }
@@ -284,7 +308,9 @@
     const params = new URLSearchParams(window.location.search);
     const useGate = params.get('gate') === '1';
     const bare    = params.get('bare') === '1';
-    if (bare) document.body.classList.add('bare');
+    const minimal = params.get('minimal') === '1';
+    if (bare)    document.body.classList.add('bare');
+    if (minimal) document.body.classList.add('minimal');
 
     const canvas  = document.getElementById('dash');
     const loading = document.getElementById('loading');

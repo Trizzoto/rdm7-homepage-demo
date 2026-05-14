@@ -54,22 +54,38 @@
     pointer-events: none !important;
   }
 
-  /* Round porthole — 720×720 native, scales to 70% of the media
-   * container while keeping a perfect square (and therefore a perfect
-   * circle after border-radius:50%). overflow:hidden masks the
-   * underlying iframe to the circle shape; the iframe itself remains
-   * rectangular underneath. */
+  /* Round bezel — two concentric circles matching the physical Round
+   * display spec:
+   *   Outer bezel:   Φ115.00 mm
+   *   Inner screen:  Φ87.60 mm    (76.17% of outer diameter)
+   *   Bezel ring:    (115 - 87.6) / 2 = 13.7 mm  =  11.91% of outer radius
+   * The outer .rd-round-stage is the bezel material; the inner
+   * .rd-round-screen sits centered inside and clips the iframe to
+   * the screen-only circle. */
   #rdm-drop-{{ section.id }} .rd-round-stage {
     position: relative !important;
     z-index: 1 !important;
     width: 70% !important;
     aspect-ratio: 1 !important;
     border-radius: 50% !important;
-    overflow: hidden !important;
-    background: #000 !important;
+    background: linear-gradient(160deg, #2a2a2c 0%, #131315 70%, #0a0a0b 100%) !important;
+    display: grid !important;
+    place-items: center !important;
     box-shadow:
       0 0 80px rgba(204, 0, 0, 0.3),
-      inset 0 0 0 2px rgba(255, 255, 255, 0.08) !important;
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.6) !important;
+  }
+  #rdm-drop-{{ section.id }} .rd-round-screen {
+    width: 76.17% !important;
+    aspect-ratio: 1 !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    background: #000 !important;
+    position: relative !important;
+    box-shadow:
+      inset 0 0 0 1px rgba(0, 0, 0, 0.9),
+      inset 0 0 12px rgba(0, 0, 0, 0.8) !important;
   }
   #rdm-drop-{{ section.id }} .rd-round-iframe {
     display: block !important;
@@ -77,38 +93,6 @@
     height: 100% !important;
     border: 0 !important;
     background: #000 !important;
-  }
-
-  /* Tiny "TEASER" badge top-right of the porthole — keeps the
-   * visitor honest about what they're looking at without breaking
-   * the visual. */
-  #rdm-drop-{{ section.id }} .rd-teaser-badge {
-    position: absolute !important;
-    top: 12% !important;
-    right: 12% !important;
-    z-index: 3 !important;
-    padding: 5px 10px !important;
-    border-radius: 999px !important;
-    background: rgba(0, 0, 0, 0.72) !important;
-    border: 1px solid rgba(255, 255, 255, 0.18) !important;
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 9px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.16em !important;
-    text-transform: uppercase !important;
-    color: rgba(255, 255, 255, 0.78) !important;
-    pointer-events: none !important;
-    backdrop-filter: blur(4px) !important;
-  }
-  #rdm-drop-{{ section.id }} .rd-teaser-badge::before {
-    content: '' !important;
-    display: inline-block !important;
-    width: 6px !important; height: 6px !important;
-    border-radius: 50% !important;
-    background: #CC0000 !important;
-    margin-right: 7px !important;
-    vertical-align: 1px !important;
-    box-shadow: 0 0 6px #CC0000 !important;
   }
 
   #rdm-drop-{{ section.id }} .rd-eyebrow {
@@ -170,9 +154,14 @@
   teaser, since the hero already loads the same WASM above it.
 {%- endcomment -%}
 {%- assign demo_base = section.settings.demo_url | default: 'https://trizzoto.github.io/rdm7-homepage-demo/' -%}
-{%- assign demo_qs = '?bare=1' -%}
+{%- comment -%}
+  ?bare=1    : strip the demo's own bezel (we have our own circular one)
+  ?gate=1    : opt-in tap-to-start (saves a duplicate WASM download)
+  ?minimal=1 : centre play button only — no "2 MB" / "tap to start" copy
+{%- endcomment -%}
+{%- assign demo_qs = '?bare=1&minimal=1' -%}
 {%- if section.settings.gate_demo -%}
-  {%- assign demo_qs = '?bare=1&gate=1' -%}
+  {%- assign demo_qs = '?bare=1&gate=1&minimal=1' -%}
 {%- endif -%}
 {%- assign demo_url = demo_base | append: demo_qs -%}
 
@@ -183,16 +172,15 @@
         <div class="rd-coming">{{ section.settings.watermark }}</div>
 
         <div class="rd-round-stage">
-          <iframe
-            class="rd-round-iframe"
-            src="{{ demo_url }}"
-            loading="lazy"
-            sandbox="allow-scripts allow-same-origin"
-            title="RDM Round live preview"
-            allow="autoplay"></iframe>
-          {% if section.settings.show_teaser_badge %}
-            <span class="rd-teaser-badge">{{ section.settings.teaser_badge_text }}</span>
-          {% endif %}
+          <div class="rd-round-screen">
+            <iframe
+              class="rd-round-iframe"
+              src="{{ demo_url }}"
+              loading="lazy"
+              sandbox="allow-scripts allow-same-origin"
+              title="RDM Round live preview"
+              allow="autoplay"></iframe>
+          </div>
         </div>
       </div>
 
@@ -245,22 +233,9 @@
     {
       "type": "checkbox",
       "id": "gate_demo",
-      "label": "Require tap to start (saves bandwidth, recommended)",
+      "label": "Require tap to start (recommended)",
       "default": true,
-      "info": "On: porthole shows a 'Tap to start' overlay until the visitor clicks; WASM only downloads then. Off: auto-loads — burns ~2 MB extra on every page view since the hero already loads the same demo above."
-    },
-    {
-      "type": "checkbox",
-      "id": "show_teaser_badge",
-      "label": "Show TEASER badge",
-      "default": true,
-      "info": "Small pill in the top-right of the porthole that reminds visitors this is a preview, not the final Round product."
-    },
-    {
-      "type": "text",
-      "id": "teaser_badge_text",
-      "label": "Teaser badge text",
-      "default": "Preview"
+      "info": "On: porthole shows a centred play button until the visitor taps. Off: dash auto-runs, but burns a second WASM download on every page view since the hero above already loaded the same demo."
     }
   ],
   "blocks": [
