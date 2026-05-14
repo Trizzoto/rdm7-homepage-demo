@@ -1,0 +1,287 @@
+{% comment %}
+  RDM Home — Round drop teaser (black bg, live WASM porthole left,
+  title + "Preview the Round" link right).
+  Place in: sections/rdm-home-round-drop.liquid
+
+  The "round preview" frame embeds the same RDM-7 WASM demo that's in
+  the hero, masked to a circle. The Round product itself doesn't ship
+  yet — this is intentionally a *teaser*, showing the shared widget
+  DNA in a round form factor.
+
+  Email capture remains in sections/rdm-newsletter.liquid above the
+  footer, not here.
+{% endcomment %}
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,900;1,900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+<style>
+  #rdm-drop-{{ section.id }} {
+    background: #000 !important;
+    color: #fff !important;
+    position: relative !important; overflow: hidden !important;
+    font-family: 'Inter', sans-serif !important;
+  }
+  #rdm-drop-{{ section.id }} .rd-container {
+    max-width: 1440px !important; margin: 0 auto !important;
+    padding: 0 clamp(20px, 4vw, 56px) !important;
+  }
+  #rdm-drop-{{ section.id }} .rd-inner {
+    display: grid !important; grid-template-columns: 1fr 1fr !important;
+    gap: 80px !important; align-items: center !important;
+    padding: clamp(80px, 10vw, 140px) 0 !important;
+    position: relative !important;
+  }
+  @media (max-width: 860px) {
+    #rdm-drop-{{ section.id }} .rd-inner { grid-template-columns: 1fr !important; gap: 40px !important; }
+  }
+  #rdm-drop-{{ section.id }} .rd-media {
+    position: relative !important;
+    aspect-ratio: 1 !important;
+    background: radial-gradient(circle at center, rgba(204,0,0,0.2), transparent 70%), #0A0A0A !important;
+    display: grid !important; place-items: center !important;
+  }
+  #rdm-drop-{{ section.id }} .rd-coming {
+    font-family: 'Barlow Condensed', sans-serif !important;
+    font-weight: 900 !important; font-style: italic !important;
+    text-transform: uppercase !important; color: #CC0000 !important;
+    font-size: 140px !important; line-height: 0.85 !important;
+    letter-spacing: -0.02em !important;
+    opacity: 0.08 !important;
+    position: absolute !important; inset: 0 !important;
+    display: grid !important; place-items: center !important;
+    pointer-events: none !important;
+  }
+
+  /* Round porthole — 720×720 native, scales to 70% of the media
+   * container while keeping a perfect square (and therefore a perfect
+   * circle after border-radius:50%). overflow:hidden masks the
+   * underlying iframe to the circle shape; the iframe itself remains
+   * rectangular underneath. */
+  #rdm-drop-{{ section.id }} .rd-round-stage {
+    position: relative !important;
+    z-index: 1 !important;
+    width: 70% !important;
+    aspect-ratio: 1 !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    background: #000 !important;
+    box-shadow:
+      0 0 80px rgba(204, 0, 0, 0.3),
+      inset 0 0 0 2px rgba(255, 255, 255, 0.08) !important;
+  }
+  #rdm-drop-{{ section.id }} .rd-round-iframe {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    border: 0 !important;
+    background: #000 !important;
+  }
+
+  /* Tiny "TEASER" badge top-right of the porthole — keeps the
+   * visitor honest about what they're looking at without breaking
+   * the visual. */
+  #rdm-drop-{{ section.id }} .rd-teaser-badge {
+    position: absolute !important;
+    top: 12% !important;
+    right: 12% !important;
+    z-index: 3 !important;
+    padding: 5px 10px !important;
+    border-radius: 999px !important;
+    background: rgba(0, 0, 0, 0.72) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 9px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.16em !important;
+    text-transform: uppercase !important;
+    color: rgba(255, 255, 255, 0.78) !important;
+    pointer-events: none !important;
+    backdrop-filter: blur(4px) !important;
+  }
+  #rdm-drop-{{ section.id }} .rd-teaser-badge::before {
+    content: '' !important;
+    display: inline-block !important;
+    width: 6px !important; height: 6px !important;
+    border-radius: 50% !important;
+    background: #CC0000 !important;
+    margin-right: 7px !important;
+    vertical-align: 1px !important;
+    box-shadow: 0 0 6px #CC0000 !important;
+  }
+
+  #rdm-drop-{{ section.id }} .rd-eyebrow {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 11px !important; letter-spacing: 0.18em !important;
+    text-transform: uppercase !important; font-weight: 600 !important;
+    color: #CC0000 !important;
+    display: inline-flex !important; align-items: center !important; gap: 10px !important;
+    margin-bottom: 20px !important;
+  }
+  #rdm-drop-{{ section.id }} .rd-eyebrow::before {
+    content: '' !important; width: 24px !important; height: 1px !important; background: #CC0000 !important;
+  }
+  #rdm-drop-{{ section.id }} .rd-title {
+    font-family: 'Barlow Condensed', sans-serif !important;
+    font-weight: 700 !important; text-transform: none !important;
+    letter-spacing: -0.035em !important;
+    font-size: clamp(56px, 8vw, 120px) !important; line-height: 0.95 !important;
+    color: #fff !important; margin: 0 !important;
+  }
+  #rdm-drop-{{ section.id }} .rd-title .red { color: #CC0000 !important; }
+  #rdm-drop-{{ section.id }} .rd-copy {
+    margin-top: 24px !important;
+    font-size: 17px !important; line-height: 1.45 !important;
+    color: rgba(255,255,255,0.72) !important; max-width: 460px !important;
+  }
+  #rdm-drop-{{ section.id }} .rd-link {
+    display: inline-flex !important; align-items: center !important; gap: 14px !important;
+    margin-top: 36px !important;
+    font-family: 'Barlow Condensed', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 18px !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    color: #fff !important;
+    text-decoration: none !important;
+    padding-bottom: 10px !important;
+    border-bottom: 1px solid rgba(255,255,255,0.2) !important;
+    transition: color 0.2s, border-color 0.2s, gap 0.2s !important;
+    cursor: pointer !important;
+  }
+  #rdm-drop-{{ section.id }} .rd-link:hover { color: #CC0000 !important; border-color: #CC0000 !important; }
+  #rdm-drop-{{ section.id }} .rd-link:focus-visible { outline: 2px solid #CC0000 !important; outline-offset: 6px !important; }
+  #rdm-drop-{{ section.id }} .rd-meta {
+    margin-top: 32px !important;
+    display: flex !important; gap: 28px !important;
+    font-family: 'JetBrains Mono', monospace !important; font-size: 10px !important;
+    letter-spacing: 0.14em !important; text-transform: uppercase !important;
+    color: #9A9A9A !important;
+    flex-wrap: wrap !important;
+  }
+</style>
+
+{%- comment -%}
+  Build the demo URL. ?bare=1 strips the demo's own bezel chrome so
+  the circular mask gets a clean canvas. ?gate=1 (controlled by the
+  schema toggle below) defers the 2 MB WASM download until the
+  visitor taps the porthole — sensible default for a below-the-fold
+  teaser, since the hero already loads the same WASM above it.
+{%- endcomment -%}
+{%- assign demo_base = section.settings.demo_url | default: 'https://trizzoto.github.io/rdm7-homepage-demo/' -%}
+{%- assign demo_qs = '?bare=1' -%}
+{%- if section.settings.gate_demo -%}
+  {%- assign demo_qs = '?bare=1&gate=1' -%}
+{%- endif -%}
+{%- assign demo_url = demo_base | append: demo_qs -%}
+
+<section id="rdm-drop-{{ section.id }}">
+  <div class="rd-container">
+    <div class="rd-inner">
+      <div class="rd-media">
+        <div class="rd-coming">{{ section.settings.watermark }}</div>
+
+        <div class="rd-round-stage">
+          <iframe
+            class="rd-round-iframe"
+            src="{{ demo_url }}"
+            loading="lazy"
+            sandbox="allow-scripts allow-same-origin"
+            title="RDM Round live preview"
+            allow="autoplay"></iframe>
+          {% if section.settings.show_teaser_badge %}
+            <span class="rd-teaser-badge">{{ section.settings.teaser_badge_text }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div>
+        <div class="rd-eyebrow">{{ section.settings.eyebrow }}</div>
+        <h2 class="rd-title">{{ section.settings.title_line1 }}<br><span class="red">{{ section.settings.title_highlight }}</span>{{ section.settings.title_rest }}</h2>
+        <p class="rd-copy">{{ section.settings.copy }}</p>
+
+        {% if section.settings.link_label != blank %}
+          <a href="{{ section.settings.link_url | default: '#' }}" class="rd-link">{{ section.settings.link_label }}</a>
+        {% endif %}
+
+        <div class="rd-meta">
+          {% for block in section.blocks %}
+            {% if block.type == 'meta' %}
+              <span {{ block.shopify_attributes }}>{{ block.settings.text }}</span>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "RDM Home Round Drop",
+  "tag": "section",
+  "class": "section-rdm-home-drop",
+  "settings": [
+    { "type": "header",  "content": "Watermark" },
+    { "type": "text",    "id": "watermark", "label": "Watermark word", "default": "Soon" },
+    { "type": "header",  "content": "Title" },
+    { "type": "text", "id": "eyebrow",         "label": "Eyebrow",                "default": "Coming Soon" },
+    { "type": "text", "id": "title_line1",     "label": "Line 1",                 "default": "Same DNA." },
+    { "type": "text", "id": "title_highlight", "label": "Line 2 highlight (red)", "default": "NEW" },
+    { "type": "text", "id": "title_rest",      "label": "Line 2 rest",            "default": " Shape." },
+    { "type": "textarea", "id": "copy", "label": "Copy",
+      "default": "The next RDM goes round. Four sizes, classic gauge feel, full Studio support — same widget engine as the RDM-7, new form factor." },
+    { "type": "header", "content": "Link" },
+    { "type": "text", "id": "link_label", "label": "Link label (leave blank to hide)", "default": "Preview the Round" },
+    { "type": "url",  "id": "link_url",   "label": "Link URL" },
+    { "type": "header", "content": "Live preview" },
+    {
+      "type": "url",
+      "id": "demo_url",
+      "label": "Demo iframe URL",
+      "info": "Same demo as the hero. Override if you move it to a custom subdomain."
+    },
+    {
+      "type": "checkbox",
+      "id": "gate_demo",
+      "label": "Require tap to start (saves bandwidth, recommended)",
+      "default": true,
+      "info": "On: porthole shows a 'Tap to start' overlay until the visitor clicks; WASM only downloads then. Off: auto-loads — burns ~2 MB extra on every page view since the hero already loads the same demo above."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_teaser_badge",
+      "label": "Show TEASER badge",
+      "default": true,
+      "info": "Small pill in the top-right of the porthole that reminds visitors this is a preview, not the final Round product."
+    },
+    {
+      "type": "text",
+      "id": "teaser_badge_text",
+      "label": "Teaser badge text",
+      "default": "Preview"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "meta",
+      "name": "Meta item",
+      "settings": [
+        { "type": "text", "id": "text", "label": "Text", "default": "Meta" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "RDM Home Round Drop",
+      "category": "Content",
+      "blocks": [
+        { "type": "meta", "settings": { "text": "4 sizes" } },
+        { "type": "meta", "settings": { "text": "2.1\" · 2.8\" · 3.4\" · 4\"" } },
+        { "type": "meta", "settings": { "text": "CAN · BT 5.0" } }
+      ]
+    }
+  ]
+}
+{% endschema %}
