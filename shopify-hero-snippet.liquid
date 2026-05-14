@@ -182,6 +182,7 @@
     z-index: 2 !important;
     /* SVG inside scales to fill via display:block */
   }
+  #rdm-hero-{{ section.id }} .rh-dash-logo img,
   #rdm-hero-{{ section.id }} .rh-dash-logo svg {
     display: block !important;
     width: 100% !important;
@@ -273,18 +274,15 @@
 
         {%- comment -%}
           RDM logo overlay — sits on top of the dash canvas in the centre
-          gap of the default layout. Inline SVG so it scales perfectly,
-          no external file hosting, no Shopify asset upload. Skewed
-          parallelogram in brand red with italic-bold "RDM" wordmark.
+          gap of the default layout. Uses the same brand PNG shipped with
+          the studio WASM, served from the demo repo's GitHub Pages
+          deployment so there's no Shopify asset upload step.
         {%- endcomment -%}
         <div class="rh-dash-logo" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 110" preserveAspectRatio="xMidYMid meet">
-            <path d="M 28 6 L 234 6 L 226 104 L 6 104 Z" fill="#CC0000"/>
-            <text x="120" y="82" fill="#fff"
-                  font-family="Inter, Helvetica, Arial, sans-serif"
-                  font-weight="900" font-size="74" font-style="italic"
-                  text-anchor="middle" letter-spacing="-2">RDM</text>
-          </svg>
+          <img src="https://trizzoto.github.io/rdm7-homepage-demo/rdm-logo.png"
+               alt=""
+               loading="lazy"
+               decoding="async">
         </div>
       </div>
     </div>
