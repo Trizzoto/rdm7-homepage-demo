@@ -340,16 +340,20 @@
        * otherwise the image widget gives up and shows grey placeholder
        * text. preRun is the Emscripten hook that runs synchronously
        * before main(). */
-      let rdmImgBytes = null;
-      let ferrariJson = null;
-      try {
-        const res = await fetch('./RDM.rdmimg');
-        if (res.ok) rdmImgBytes = new Uint8Array(await res.arrayBuffer());
-      } catch (_) { /* non-fatal — splash just renders without the logo */ }
-      try {
-        const res = await fetch('./ferrari-layout.json');
-        if (res.ok) ferrariJson = new Uint8Array(await res.arrayBuffer());
-      } catch (_) { /* non-fatal — Ferrari option falls back to default */ }
+      /* Pre-fetch assets in parallel. The Ferrari background image is
+       * ~700 KB; it's bundled with the page so the layout swap is
+       * instant when the user picks it from the menu. */
+      const fetchBytes = async (url) => {
+        try {
+          const r = await fetch(url);
+          return r.ok ? new Uint8Array(await r.arrayBuffer()) : null;
+        } catch (_) { return null; }
+      };
+      const [rdmImgBytes, ferrariJson, ferrariBgBytes] = await Promise.all([
+        fetchBytes('./RDM.rdmimg'),
+        fetchBytes('./ferrari-layout.json'),
+        fetchBytes('./Gemini_Generated_Image_f3rh.rdmimg'),
+      ]);
 
       module = await factory({
         canvas,
@@ -365,6 +369,9 @@
           }
           if (ferrariJson) {
             Module.FS.writeFile('/lfs/layouts/ferrari.json', ferrariJson);
+          }
+          if (ferrariBgBytes) {
+            Module.FS.writeFile('/lfs/images/Gemini_Generated_Image_f3rh.rdmimg', ferrariBgBytes);
           }
         }],
       });
