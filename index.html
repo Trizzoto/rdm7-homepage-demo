@@ -341,10 +341,15 @@
        * text. preRun is the Emscripten hook that runs synchronously
        * before main(). */
       let rdmImgBytes = null;
+      let ferrariJson = null;
       try {
         const res = await fetch('./RDM.rdmimg');
         if (res.ok) rdmImgBytes = new Uint8Array(await res.arrayBuffer());
       } catch (_) { /* non-fatal — splash just renders without the logo */ }
+      try {
+        const res = await fetch('./ferrari-layout.json');
+        if (res.ok) ferrariJson = new Uint8Array(await res.arrayBuffer());
+      } catch (_) { /* non-fatal — Ferrari option falls back to default */ }
 
       module = await factory({
         canvas,
@@ -352,10 +357,15 @@
         print:    () => {},           /* silence printf */
         printErr: () => {},           /* silence ESP_LOG */
         preRun: [function(Module) {
-          if (!rdmImgBytes) return;
           try { Module.FS.mkdir('/lfs');         } catch (_) {}
           try { Module.FS.mkdir('/lfs/images');  } catch (_) {}
-          Module.FS.writeFile('/lfs/images/RDM.rdmimg', rdmImgBytes);
+          try { Module.FS.mkdir('/lfs/layouts'); } catch (_) {}
+          if (rdmImgBytes) {
+            Module.FS.writeFile('/lfs/images/RDM.rdmimg', rdmImgBytes);
+          }
+          if (ferrariJson) {
+            Module.FS.writeFile('/lfs/layouts/ferrari.json', ferrariJson);
+          }
         }],
       });
 
