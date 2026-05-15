@@ -481,6 +481,14 @@
           inject('FUEL_TRIM',       wave(ms,  1.5, 2.0, 5500, 3000));
           inject('BATTERY_VOLTAGE', wave(ms, 13.8, 0.3, 9000, 0));
           inject('FUEL_PRESSURE',   wave(ms, 48,   2,   3600, 2000));
+          /* Ferrari-layout signals (also harmless for the default layout
+           * — unsubscribed signals are simply ignored by the registry). */
+          inject('LAMBDA_TARGET',   wave(ms, 0.88, 0.04, 4000, 600));
+          inject('LAMBDA_CORR_A',   wave(ms, 0.0,  3.5,  2700, 1700));
+          /* Slowly draining fuel tank (resets every ~5 minutes) */
+          inject('VIRTUAL_FUEL_TANK', 100 - ((ms / 1000) % 300) / 3);
+          /* Frames per second — synthetic 70 Hz with mild jitter */
+          inject('FPS',             70 + Math.sin(ms / 800) * 1.5);
         }
         // 60 ms cadence — matches the WASM's internal _dash_tick rate.
         setInterval(step, 60);
