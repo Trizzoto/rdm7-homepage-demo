@@ -358,8 +358,8 @@
       module = await factory({
         canvas,
         locateFile: (path) => path,   /* serve .wasm from same directory */
-        print:    () => {},           /* silence printf */
-        printErr: () => {},           /* silence ESP_LOG */
+        print:    (msg) => console.log('[wasm]', msg),
+        printErr: (msg) => console.log('[wasm-err]', msg),
         preRun: [function(Module) {
           try { Module.FS.mkdir('/lfs');         } catch (_) {}
           try { Module.FS.mkdir('/lfs/images');  } catch (_) {}
