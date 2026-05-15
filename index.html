@@ -334,25 +334,30 @@
       const factory = window.RDM7Sandbox;
       if (!factory) throw new Error('RDM7Sandbox factory missing on window');
 
+      /* Fetch the dash logo BEFORE booting the WASM. The default layout
+       * is built during wizard_sandbox_start() which runs inside main(),
+       * so the image must exist in the in-memory FS before main() runs —
+       * otherwise the image widget gives up and shows grey placeholder
+       * text. preRun is the Emscripten hook that runs synchronously
+       * before main(). */
+      let rdmImgBytes = null;
+      try {
+        const res = await fetch('./RDM.rdmimg');
+        if (res.ok) rdmImgBytes = new Uint8Array(await res.arrayBuffer());
+      } catch (_) { /* non-fatal — splash just renders without the logo */ }
+
       module = await factory({
         canvas,
         locateFile: (path) => path,   /* serve .wasm from same directory */
         print:    () => {},           /* silence printf */
         printErr: () => {},           /* silence ESP_LOG */
+        preRun: [function(Module) {
+          if (!rdmImgBytes) return;
+          try { Module.FS.mkdir('/lfs');         } catch (_) {}
+          try { Module.FS.mkdir('/lfs/images');  } catch (_) {}
+          Module.FS.writeFile('/lfs/images/RDM.rdmimg', rdmImgBytes);
+        }],
       });
-
-      /* Drop the dash logo into the in-memory FS so the splash screen
-       * has it. Other widget images would slot in here too if the
-       * default layout referenced them. */
-      try {
-        const res = await fetch('./RDM.rdmimg');
-        if (res.ok) {
-          const buf = new Uint8Array(await res.arrayBuffer());
-          try { module.FS.mkdir('/lfs');         } catch (_) {}
-          try { module.FS.mkdir('/lfs/images');  } catch (_) {}
-          module.FS.writeFile('/lfs/images/RDM.rdmimg', buf);
-        }
-      } catch (e) { /* non-fatal — splash just renders without the logo */ }
 
       /* Jump straight to the dashboard scene so the demo opens on the
        * product's actual main screen rather than the first-run wizard. */
